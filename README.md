@@ -6,5 +6,9 @@ And make GDI digital homebrew that cant be burned easy
 Replace this file in kos and make clean and rebuil
 This all you need to do is replace this in kos it will still work on normal cdr but now it will work also when you make a gdi
 
+bios reactivation
+You will  need to add a universal reactivation code to all SDKs used, then you won't have to collect images separately
+Replace all files and make clean and make rebuild kos and your project..
+
 Dont pirate homebrew indie games support our dev's
 <img src="ian111.jpg" class="img-responsive" alt=""> </div>
