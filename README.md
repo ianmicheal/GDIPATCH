@@ -7,3 +7,4 @@ Replace this file in kos and make clean and rebuil
 This all you need to do is replace this in kos it will still work on normal cdr but now it will work also when you make a gdi
 
 Dont pirate homebrew indie games support our dev's
+<img src="img/ian111.jpg" class="img-responsive" alt=""> </div>
