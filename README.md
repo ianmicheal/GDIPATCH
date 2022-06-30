@@ -13,3 +13,5 @@ Replace all files and make clean and make rebuild kos and your project..
 
 Dont pirate homebrew indie games support our dev's
 <img src="ian111.jpg" class="img-responsive" alt=""> </div>
+
+Thanks to megavolt for code and info on this..
