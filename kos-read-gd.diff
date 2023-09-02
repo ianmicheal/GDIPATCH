@@ -1,0 +1,86 @@
+--- kos/kernel/arch/dreamcast/fs/fs_iso9660.c	2023-08-30 20:15:36.886399716 -0500
++++ kos-gdrom/kernel/arch/dreamcast/fs/fs_iso9660.c	2023-08-31 17:22:11.075278399 -0500
+@@ -47,6 +47,8 @@
+ 
+ static int init_percd(void);
+ static int percd_done;
++static int disc_type;
++static mutex_t iso_mutex = MUTEX_INITIALIZER;
+ 
+ /********************************************************************************/
+ /* Low-level Joliet utils */
+@@ -339,10 +341,12 @@
+         return -1;
+     }
+ 
+-    if((i = cdrom_read_toc(&toc, 0)) != 0)
++    if((i = cdrom_read_toc(&toc, (disc_type == CD_GDROM))) != 0)
+         return i;
+ 
+-    if(!(session_base = cdrom_locate_data_track(&toc)))
++    if(disc_type == CD_GDROM) {
++		session_base = 45150;
++	} else if(!(session_base = cdrom_locate_data_track(&toc)))
+         return -1;
+ 
+     /* Check for joliet extensions */
+@@ -663,9 +667,30 @@
+     if(fd >= FS_CD_MAX_FILES || fh[fd].first_extent == 0 || fh[fd].broken)
+         return -1;
+ 
++    while(mutex_is_locked(&iso_mutex)) {
++        thd_pass();
++    }
++
++    mutex_lock(&iso_mutex);
++
+     rv = 0;
+     outbuf = (uint8 *)buf;
+ 
++    if(!((uint32)buf & 0x1F) && !(bytes & 0x7FF) && !(fh[fd].ptr & 0x7FF)) {
++        rv = cdrom_read_sectors_ex ((void *) ((uint32) buf & 0x0FFFFFFF),
++                                   (fh[fd].first_extent + 150) + fh[fd].ptr / 2048,
++                                   bytes / 2048, CDROM_READ_DMA);
++        if(rv < 0) {
++            mutex_unlock(&iso_mutex);
++            return -1;
++        }
++        fh[fd].ptr += bytes;
++
++        mutex_unlock(&iso_mutex);
++
++        return bytes;
++    }
++
+     /* Read zero or more sectors into the buffer from the current pos */
+     while(bytes > 0) {
+         /* Figure out how much we still need to read */
+@@ -707,7 +732,10 @@
+         /* Do the read */
+         c = bdread(fh[fd].first_extent + fh[fd].ptr / 2048);
+ 
+-        if(c < 0) return -1;
++        if(c < 0) {
++            mutex_unlock(&iso_mutex);
++            return -1;
++        }
+ 
+         memcpy(outbuf, dcache[c]->data + (fh[fd].ptr % 2048), toread);
+         /* } */
+@@ -719,6 +747,7 @@
+         rv += toread;
+     }
+ 
++    mutex_unlock(&iso_mutex);
+     return rv;
+ }
+ 
+@@ -929,7 +958,7 @@
+ static int iso_last_status;
+ static int iso_vblank_hnd;
+ static void iso_vblank(uint32 evt) {
+-    int status, disc_type;
++    int status;
+ 
+     (void)evt;
+ 
